@@ -1,0 +1,29 @@
+{
+    "name": "LinkedIn Company Hider",
+    "version": "1.0.0",
+    "description": "Hide companies that don't fit you!",
+    "manifest_version": 3,
+    "author": "Viktor Morozov",
+    "action":{
+        "default_popup": "index.html",
+        "default_title": "LinkedIn Company Hider"
+    },
+    "content_scripts": [
+        {
+          "js": ["scripts/content.js"],
+          "matches": [
+            "https://linkedin.com/jobs/search/*",
+            "https://www.linkedin.com/jobs/search/*"
+          ],
+          "all_frames": true,
+          "run_at": "document_end"
+        }
+    ],
+    "background": {
+        "service_worker": "scripts/background.js"
+    },
+    "permissions": [
+        "tabs",
+        "webNavigation"
+    ]
+}

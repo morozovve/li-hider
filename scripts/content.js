@@ -121,6 +121,9 @@ function addMuteBtn(job) {
 function addCompanyToMuted(companyName) {
     muteds.push(companyName);
     console.log(`added company ${companyName} to ${muteds}`);
+    chrome.storage.local.set({'mutedArr': muteds}, () => {
+        console.log('Stored name: mutedArr');
+    });
 }
 
 function updateCounter() {
@@ -169,6 +172,14 @@ function filterJob(job) {
 }
 
 function filterJobs() {
+    chrome.storage.local.get(['mutedArr'], (result) => {
+        console.log('Retrieved: ' + result.mutedArr);
+        if (result.mutedArr) {
+            console.log('updated muteds: ' + result.mutedArr);
+            muteds = result.mutedArr;
+        }
+    });
+
     const jobs = document.body.querySelectorAll('li[class*="jobs-search-results__list-item"]');
     for (var i=0, max=jobs.length; i < max; i++) {
         if (jobs[i].textContent && jobs[i].textContent.trim()) {

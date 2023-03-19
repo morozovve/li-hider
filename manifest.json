@@ -5,7 +5,7 @@
     "manifest_version": 3,
     "author": "Viktor Morozov",
     "action":{
-        "default_popup": "index.html",
+        "default_popup": "popup.html",
         "default_title": "LinkedIn Company Hider"
     },
     "content_scripts": [
@@ -24,6 +24,7 @@
     },
     "permissions": [
         "tabs",
-        "webNavigation"
+        "webNavigation",
+        "storage"
     ]
 }

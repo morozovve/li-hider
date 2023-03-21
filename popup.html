@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html>
+<html style="min-width:350px;">
+
 <head>
     <title>LinkedIn Company Hider</title>
     <meta charset="utf-8">
@@ -7,11 +8,21 @@
 </head>
 
 <body>
-    <h3 class="display-6"> [Popup] List of hidden companies: </h3>
-    <ul class="list-group" id="mutedList">
-        <!-- <li class="list-group-item"> Item 1</li> -->
-    </ul>
-    <button id="goToExtBtn">Click me</button>
-    <script src="scripts/popup.js"></script>
+    <h6 class="display-6 text-center"> Hidden companies: </h3>
+        <ul class="list-group" id="mutedList">
+            <!-- <li class="list-group-item"> Item 1</li> -->
+        </ul>
+
+        <div class="container">
+            <div class="row row-lg-2 pb-2 text-center">
+                <div class="display-6 col">
+                    <button id="goToExtBtn" class="btn btn-outline-primary">Show more...</button>
+                </div>
+            </div>
+        </div>
+
+
+        <script src="scripts/popup.js"></script>
 </body>
+
 </html>

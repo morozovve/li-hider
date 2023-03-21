@@ -1,5 +1,5 @@
 function isPopup() {
-    console.log(`is popup: ${window.innerWidth}`);
+    console.log(`[DEBUG] Is popup? width: ${window.innerWidth}`);
     return window.innerWidth < 500;
 }
 
@@ -11,7 +11,6 @@ function waitForElm(obj, selector) {
 
         const observer = new MutationObserver(mutations => {
             if (obj.querySelector(selector)) {
-                console.log(`finished loading ${obj.querySelector(selector)}`);
                 resolve(obj.querySelector(selector));
                 observer.disconnect();
             }
@@ -84,6 +83,9 @@ function getListElement(companyName) {
 
     var col1 = document.createElement("div");
     col1.classList.add("col");
+    if (isPopup()) {
+        col1.classList.add("text-truncate");
+    }
     col1.appendChild(document.createTextNode(companyName));
     row.appendChild(col1);
 
@@ -103,7 +105,7 @@ function getListElement(companyName) {
         if (muteds.includes(companyName)) {
             muteds = muteds.filter(item => item !== companyName)
             chrome.storage.local.set({ 'mutedArr': muteds }, () => {
-                console.log('Stored new mutedArr');
+                console.log('[INFO ] Stored new mutedArr');
             });
         }
         // update list
@@ -122,7 +124,7 @@ function updateMutedList() {
             mutedsList = muteds.slice().reverse().slice(0, 4);
         }
 
-        console.log(`updating list with ${mutedsList}`);
+        console.log(`[INFO ] list-to-show: ${mutedsList}`);
         var ul = document.getElementById("mutedList");
         mutedsList.forEach(company => {
             let listElement = getListElement(company);
@@ -134,9 +136,9 @@ function updateMutedList() {
 function getMutedList() {
     // crutch for now; add Promise.then() later
     chrome.storage.local.get(['mutedArr'], (result) => {
-        console.log('Retrieved: ' + result.mutedArr);
+        console.log('[INFO ] Retrieved: ' + result.mutedArr);
         if (result.mutedArr) {
-            console.log('updated muteds: ' + result.mutedArr);
+            console.log('[INFO ] updated muteds: ' + result.mutedArr);
             muteds = result.mutedArr;
             updateMutedList();
         }

@@ -11,7 +11,7 @@ function extractCompany(job) {
     if (jobCompany) {
         return jobCompany.textContent.trim();
     } else {
-        console.log(`[error]: got empty "jobCompany" from job ${job}`)
+        console.log(`[ERROR] got empty "jobCompany" from job ${job}`)
         return '';
     }
 }
@@ -22,27 +22,14 @@ function extractLocation(job) {
     if (jobLoc) {
         return jobLoc.textContent.trim();
     } else {
-        console.log(`[error]: got empty "jobLocation" from job ${job}`)
+        console.log(`[ERROR] got empty "jobLocation" from job ${job}`)
         return '';
     }
 }
 
 function setMuteds(muteds) {
     chrome.storage.local.set({ 'mutedArr': muteds }, () => {
-        console.log('Stored name: mutedArr');
-    });
-}
-
-function getMuteds() {
-    /*Crutchy way to go, unused */
-    chrome.storage.local.get(['mutedArr'], (result) => {
-        if (result.mutedArr) {
-            console.log('Retrieved muteds: ' + result.mutedArr);
-            muteds = result.mutedArr;
-
-        } else {
-            console.log('Cant retrieve, res: ' + result.mutedArr);
-        }
+        console.log('[INFO ] Stored mutedArr to local storage');
     });
 }
 
@@ -67,7 +54,6 @@ function waitForElm(obj, selector) {
 
         const observer = new MutationObserver(mutations => {
             if (obj.querySelector(selector)) {
-                console.log(`finished loading ${obj.querySelector(selector)}`);
                 resolve(obj.querySelector(selector));
                 observer.disconnect();
             }
@@ -103,10 +89,10 @@ function resetCounter() {
 
 chrome.runtime.onMessage.addListener(
     function (request, sender, sendResponse) {
-        console.log(`Got msg: ${request.message}`)
+        console.log(`[INFO ] Got msg: ${request.message}`)
         // listen for messages sent from background.js
         if (request.message === 'urlChanged') {
-            console.log('waiting for jobs to load...')
+            console.log('[INFO ] Waiting for jobs to load...')
             waitAndFilterJobs();
         }
     });
@@ -119,10 +105,10 @@ muteds = Array()
 function waitAndFilterJobs() {
     resetCounter();
     waitForElm(document, elemWhenJobsLoaded).then((elm) => {
-        console.log('Jobs are ready');
+        console.log('[INFO ] Jobs are ready');
         getMutedsWithPromise('mutedArr').then(
             (mutedArr) => {
-                console.log(`loaded muteds: ${mutedArr}`);
+                console.log(`[DEBUG] loaded muteds: ${mutedArr}`);
                 muteds = mutedArr;
                 filterJobs();
             }
@@ -136,10 +122,9 @@ function muteCompany(job) {
 }
 
 function waitAndAddMuteBtn(job) {
-    console.log(`job: ${job.id}`);
     waitForElm(job, 'button[class*="muted"]').then(() => {
-        console.log('Adding late mute button');
-        console.log(`Found LI mute button: ${job.querySelector('button[class*="muted"]')}`);
+        console.log(`[INFO ] Found LI mute button: ${job.querySelector('button[class*="muted"]')}`);
+        console.log('[INFO ] Adding late mute button...');
         addMuteBtn(job);
     });
 }
@@ -147,39 +132,41 @@ function waitAndAddMuteBtn(job) {
 function addMuteBtn(job) {
     li_btn = job.querySelector('button[class*="muted"]')
     if (!li_btn) {
+        console.log(`[ERROR] Cant add mute button: LI mute button not found for job ${job.id}`);
         return;
     }
+    
     muteBtn = document.createElement('button');
     muteBtn.innerHTML = 'Hide';
     muteBtn.style.zIndex = "100";
     muteBtn.classList.add("artdeco-pill--choice");
     muteBtn.classList.add("artdeco-pill--2");
     muteBtn.id = 'mute-button-' + job.id;
-    // TODO figure out auto-switching to job even when we trying to hide it
-    // job.style.pointerEvents = "none";
-    // muteBtn.style.pointerEvents = "auto";
-    console.log('adding mute button');
+    
+    
     muteBtn.onclick = function () {
-        muteCompany(job);
+        // TODO figure out how to disable auto-switching to job even when we trying to hide it
+        // tried: job.style.pointerEvents = "none";
+        // tried: muteBtn.style.pointerEvents = "auto";
         // Or we can just go back when button is clicked so that we're 'staying' on the same job
-        // history.back();
+        // tried: history.back(); works poorly
+        muteCompany(job);
     };
+
     if (!job.querySelector(`button[id="${muteBtn.id}"]`)) {
+        console.log('[INFO ] Adding mute button');
         li_btn.insertAdjacentElement("afterend", muteBtn);
-        console.log('added mute button');
-    } else {
-        console.log(`found existing mute button: ${job.querySelector(`button[id="${muteBtn.id}"]`)}`);
     }
 }
 
 function addCompanyToMuted(companyName) {
-    if (!muteds.includes(companyName)) {
-        console.log(`company ${companyName} is already in  ${muteds}`);
+    if (muteds.includes(companyName)) {
+        console.log(`[WARN ] company ${companyName} is already in ${muteds}`);
     } else {
         muteds.push(companyName);
-        console.log(`added company ${companyName} to ${muteds}`);
-        setMuteds(muteds);
+        console.log(`[INFO ] added company ${companyName} to ${muteds}`);
     }
+    setMuteds(muteds);
     waitAndFilterJobs();
 }
 
@@ -194,11 +181,7 @@ function updateCounter() {
         counter.textContent = `Hidden jobs: ${hiddenCnt}/25`;
 
         numRes = document.querySelector('small[class*="jobs-search-results-list__text"]');
-        if (numRes) {
-            numRes.insertAdjacentElement("afterend", counter);
-        } else {
-            alert('not found numRes')
-        }
+        numRes.insertAdjacentElement("afterend", counter);
     } else {
         // TODO: add link to the ext page like "<a href=??> Job hiding settings </a>"
         counter.textContent = `Hidden jobs: ${hiddenCnt}/25`;
@@ -206,42 +189,39 @@ function updateCounter() {
 }
 
 function filterJob(job) {
-    console.log(`[IMPORTANT] filterJob: ${job.id}`);
+    console.log(`[INFO ] filterJob: ${job.id}`);
     let res = 0;
     if (job.style.display == 'none') {
+        // We've already muted & counted this job, skipping
         if (setObservers.has(job.id)) {
             setObservers.delete(job.id);
         }
         return 0;
-        return 1;
     }
+
     // Extracting data for filtering
     jobLoc = extractLocation(job)
     jobCompany = extractCompany(job)
-    console.log("# Processing company:", jobCompany);
-    console.log(`${jobCompany} in ${muteds}?`);
+    console.log("[INFO ] Processing company:", jobCompany);
 
     // if matches condition on company/location:
     if (muteds.includes(jobCompany)) { // TODO add condition
         job.style.display = 'none';
         res = 1;
-        console.log('yes');
+        console.log('[INFO ] Company is in skip-list');
     } else {
-        console.log('no');
+        console.log('[INFO ] Company is not in skip-list');
     }
     setObservers.delete(job.id);
-    console.log(`#set: `, setObservers.size);
     return res;
 }
 
 function filterJobs() {
-    getMuteds();
-
     const jobs = document.body.querySelectorAll('li[class*="jobs-search-results__list-item"]');
     for (var i = 0, max = jobs.length; i < max; i++) {
         if (jobs[i].textContent && jobs[i].textContent.trim()) {
             if (jobs[i].style.display !== 'none') {
-                console.log(`Ready to filter: ${i}`);
+                console.log(`[INFO ] Ready to filter job ${jobs[i].id}`);
                 addMuteBtn(jobs[i]);
                 hiddenCnt += filterJob(jobs[i]);
                 updateCounter();
@@ -252,7 +232,7 @@ function filterJobs() {
         } else {
             if (!setObservers.has(jobs[i].id)) {
                 let job = jobs[i];
-                console.log(`Set callback: ${i} for job ${job.id}`);
+                console.log(`[INFO ] Set callback for job ${job.id}`);
                 onVisible(job, function () {
                     waitAndAddMuteBtn(job)
                     hiddenCnt += filterJob(job)

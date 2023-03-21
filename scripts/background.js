@@ -1,7 +1,5 @@
 chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
-    console.log('Page uses History API and we heard a pushSate/replaceState.');
-    console.log(details.tabId);
-    console.log(details.url);
+    console.log('[INFO ] Page uses History API and we heard a pushSate/replaceState.');
     if (details.url.match('https:\/\/.*.linkedin.com\/.*')) {
         chrome.tabs.sendMessage(details.tabId, {
             message: 'urlChanged'

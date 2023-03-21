@@ -122,6 +122,11 @@ function updateMutedList() {
         let mutedsList = muteds.slice().reverse().slice(0, muteds.length);
         if (isPopup()) {
             mutedsList = muteds.slice().reverse().slice(0, 4);
+            waitForElm(document, 'button[id=goToExtBtn]').then((btn) => {
+                if (muteds.length <= 4) {
+                    btn.textContent = 'Go to Extension';
+                }
+            })
         }
 
         console.log(`[INFO ] list-to-show: ${mutedsList}`);

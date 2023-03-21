@@ -1,26 +1,63 @@
+/*---------------------------------------*
+ *---------  Utils are here -------------*
+ *---------------------------------------*/
+const elemWhenJobsLoaded = 'div[class*="jobs-search-results-list__pagination"]';
 let hiddenCnt = 0;
 const setObservers = new Set();
-muteds = Array()
-const elemWhenJobsLoaded = 'div[class*="jobs-search-results-list__pagination"]';
 
+function extractCompany(job) {
+    // Company class: <div> artdeco-entity-lockup__subtitle ember-view
+    jobCompany = job.querySelector('div[class*="artdeco-entity-lockup__subtitle ember-view"]');
+    if (jobCompany) {
+        return jobCompany.textContent.trim();
+    } else {
+        console.log(`[error]: got empty "jobCompany" from job ${job}`)
+        return '';
+    }
+}
 
-chrome.runtime.onMessage.addListener(
-    function(request, sender, sendResponse) {
-        console.log(`Got msg: ${request.message}`)
-        // listen for messages sent from background.js
-        if (request.message === 'urlChanged') {
-            if (setObservers.size == 0 || true) {
-                hiddenCnt = 0;
-                console.log('waiting for jobs to load...')
-                waitForElm(document, elemWhenJobsLoaded).then((elm) => {
-                    console.log('Jobs are ready');
-                    filterJobs();
-                });
-            } else {
-                console.log('repeating request since setObservers.size > 0')
-            }
+function extractLocation(job) {
+    // Location class: <div> artdeco-entity-lockup__caption ember-view
+    jobLoc = job.querySelector('div[class*="artdeco-entity-lockup__caption ember-view"]')
+    if (jobLoc) {
+        return jobLoc.textContent.trim();
+    } else {
+        console.log(`[error]: got empty "jobLocation" from job ${job}`)
+        return '';
+    }
+}
+
+function setMuteds(muteds) {
+    chrome.storage.local.set({ 'mutedArr': muteds }, () => {
+        console.log('Stored name: mutedArr');
+    });
+}
+
+function getMuteds() {
+    /*Crutchy way to go, unused */
+    chrome.storage.local.get(['mutedArr'], (result) => {
+        if (result.mutedArr) {
+            console.log('Retrieved muteds: ' + result.mutedArr);
+            muteds = result.mutedArr;
+
+        } else {
+            console.log('Cant retrieve, res: ' + result.mutedArr);
         }
-});
+    });
+}
+
+function getMutedsWithPromise(sKey) {
+    return new Promise(function (resolve, reject) {
+        chrome.storage.local.get(sKey, function (items) {
+            if (chrome.runtime.lastError) {
+                console.error(chrome.runtime.lastError.message);
+                reject(chrome.runtime.lastError.message);
+            } else {
+                resolve(items[sKey]);
+            }
+        });
+    });
+}
 
 function waitForElm(obj, selector) {
     return new Promise(resolve => {
@@ -44,39 +81,56 @@ function waitForElm(obj, selector) {
 }
 
 function onVisible(element, callback) {
-    var observer = new MutationObserver(function(){
-        if(element.textContent && element.textContent.trim()){
+    var observer = new MutationObserver(function () {
+        if (element.textContent && element.textContent.trim()) {
             callback();
         }
     });
     observer.observe(element, { attributes: true, childList: true });
-    setObservers.add(element.id);
 }
 
-// Company class: <div> artdeco-entity-lockup__subtitle ember-view
-function extractCompany(job) {
-    jobCompany = job.querySelector('div[class*="artdeco-entity-lockup__subtitle ember-view"]');
-    if (jobCompany) {
-        return jobCompany.textContent.trim();
-    } else {
-        console.log(`[error]: got empty "jobCompany" from job ${job}`)
-        return '';
-    }
+function resetCounter() {
+    hiddenCnt = 0;
 }
 
-// Location class: <div> artdeco-entity-lockup__caption ember-view
-function extractLocation(job) {
-    jobLoc = job.querySelector('div[class*="artdeco-entity-lockup__caption ember-view"]')
-    if (jobLoc) {
-        return jobLoc.textContent.trim();
-    } else {
-        console.log(`[error]: got empty "jobLocation" from job ${job}`)
-        return '';
-    }
+/*---------------------------------------*
+ *---------  End of Utils ---------------*
+ *---------------------------------------*/
+
+/*---------------------------------------*
+ *---------  Listeners are here ---------*
+ *---------------------------------------*/
+
+chrome.runtime.onMessage.addListener(
+    function (request, sender, sendResponse) {
+        console.log(`Got msg: ${request.message}`)
+        // listen for messages sent from background.js
+        if (request.message === 'urlChanged') {
+            console.log('waiting for jobs to load...')
+            waitAndFilterJobs();
+        }
+    });
+
+/*---------------------------------------*
+ *---------  End of Listeners -----------*
+ *---------------------------------------*/
+muteds = Array()
+
+function waitAndFilterJobs() {
+    resetCounter();
+    waitForElm(document, elemWhenJobsLoaded).then((elm) => {
+        console.log('Jobs are ready');
+        getMutedsWithPromise('mutedArr').then(
+            (mutedArr) => {
+                console.log(`loaded muteds: ${mutedArr}`);
+                muteds = mutedArr;
+                filterJobs();
+            }
+        );
+    });
 }
 
 function muteCompany(job) {
-    console.log('clicked mute button');
     let jobCompany = extractCompany(job);
     addCompanyToMuted(jobCompany);
 }
@@ -105,7 +159,7 @@ function addMuteBtn(job) {
     // job.style.pointerEvents = "none";
     // muteBtn.style.pointerEvents = "auto";
     console.log('adding mute button');
-    muteBtn.onclick = function() {    
+    muteBtn.onclick = function () {
         muteCompany(job);
         // Or we can just go back when button is clicked so that we're 'staying' on the same job
         // history.back();
@@ -119,11 +173,14 @@ function addMuteBtn(job) {
 }
 
 function addCompanyToMuted(companyName) {
-    muteds.push(companyName);
-    console.log(`added company ${companyName} to ${muteds}`);
-    chrome.storage.local.set({'mutedArr': muteds}, () => {
-        console.log('Stored name: mutedArr');
-    });
+    if (!muteds.includes(companyName)) {
+        console.log(`company ${companyName} is already in  ${muteds}`);
+    } else {
+        muteds.push(companyName);
+        console.log(`added company ${companyName} to ${muteds}`);
+        setMuteds(muteds);
+    }
+    waitAndFilterJobs();
 }
 
 function updateCounter() {
@@ -149,22 +206,28 @@ function updateCounter() {
 }
 
 function filterJob(job) {
+    console.log(`[IMPORTANT] filterJob: ${job.id}`);
     let res = 0;
     if (job.style.display == 'none') {
         if (setObservers.has(job.id)) {
             setObservers.delete(job.id);
         }
+        return 0;
         return 1;
     }
     // Extracting data for filtering
     jobLoc = extractLocation(job)
     jobCompany = extractCompany(job)
     console.log("# Processing company:", jobCompany);
+    console.log(`${jobCompany} in ${muteds}?`);
 
     // if matches condition on company/location:
     if (muteds.includes(jobCompany)) { // TODO add condition
         job.style.display = 'none';
         res = 1;
+        console.log('yes');
+    } else {
+        console.log('no');
     }
     setObservers.delete(job.id);
     console.log(`#set: `, setObservers.size);
@@ -172,16 +235,10 @@ function filterJob(job) {
 }
 
 function filterJobs() {
-    chrome.storage.local.get(['mutedArr'], (result) => {
-        console.log('Retrieved: ' + result.mutedArr);
-        if (result.mutedArr) {
-            console.log('updated muteds: ' + result.mutedArr);
-            muteds = result.mutedArr;
-        }
-    });
+    getMuteds();
 
     const jobs = document.body.querySelectorAll('li[class*="jobs-search-results__list-item"]');
-    for (var i=0, max=jobs.length; i < max; i++) {
+    for (var i = 0, max = jobs.length; i < max; i++) {
         if (jobs[i].textContent && jobs[i].textContent.trim()) {
             if (jobs[i].style.display !== 'none') {
                 console.log(`Ready to filter: ${i}`);
@@ -196,24 +253,15 @@ function filterJobs() {
             if (!setObservers.has(jobs[i].id)) {
                 let job = jobs[i];
                 console.log(`Set callback: ${i} for job ${job.id}`);
-                let addfun = function() {
-                    waitAndAddMuteBtn(job);
-                };
-                let filterfun = function() {
-                    hiddenCnt += filterJob(job);
-                }
-                onVisible(job, function() {
-                    addfun();
-                    filterfun();
+                onVisible(job, function () {
+                    waitAndAddMuteBtn(job)
+                    hiddenCnt += filterJob(job)
                     updateCounter();
                 });
+                setObservers.add(job.id);
             }
         }
     }
 }
 
-waitForElm(document, elemWhenJobsLoaded).then((elm) => {
-    console.log('Jobs are ready');
-    filterJobs();
-});
-
+waitAndFilterJobs();

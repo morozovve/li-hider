@@ -1,8 +1,12 @@
-chrome.webNavigation.onHistoryStateUpdated.addListener(function (details) {
-    console.log('[INFO ] Page uses History API and we heard a pushSate/replaceState.');
-    if (details.url.match('https:\/\/.*.linkedin.com\/.*')) {
-        chrome.tabs.sendMessage(details.tabId, {
-            message: 'urlChanged'
-        })
-    }
-});
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab)=>{
+    chrome.tabs.query({
+        active: true,
+        currentWindow: true
+    },(tabs)=>{
+        if(changeInfo.url && tabId === tabs[0].id && changeInfo.url.match('https:\/\/.*.linkedin.com\/jobs\/search\/.*')) {
+            chrome.tabs.sendMessage(tabId, {
+                message: 'urlChanged'
+            });
+        };
+    })
+})

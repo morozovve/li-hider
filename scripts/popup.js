@@ -24,8 +24,7 @@ function waitForElm(obj, selector) {
 }
 
 function goToExtPage() {
-    var newURL = "index.html";
-    chrome.tabs.create({ url: newURL });
+    chrome.tabs.create({ url: "index.html" });
 }
 
 function reloadPage() {
@@ -35,7 +34,6 @@ function reloadPage() {
 }
 
 function rmAllHidden() {
-    var newURL = "index.html";
     muteds = Array();
     chrome.storage.local.set({ 'mutedArr': muteds }, () => {
         console.log('Stored new mutedArr');
@@ -57,7 +55,7 @@ function getListElement(companyName) {
     //     </div>
     // </a>
 
-    var a = document.createElement('a');
+    let a = document.createElement('a');
     a.classList.add('border-0');
     a.classList.add('list-group-item-action');
     a.classList.add('list-group-item-light');
@@ -66,22 +64,22 @@ function getListElement(companyName) {
     a.classList.add('pt-1');
     a.href = '#';
 
-    var container = document.createElement("div")
+    let container = document.createElement("div")
     container.classList.add("container");
     a.appendChild(container);
 
-    var row = document.createElement("div");
+    let row = document.createElement("div");
     row.classList.add("row");
     container.appendChild(row);
 
     if (!isPopup()) {
-        var col0 = document.createElement("div");
+        let col0 = document.createElement("div");
         col0.classList.add("col");
         col0.classList.add("col-lg-1");
         row.appendChild(col0);
     }
 
-    var col1 = document.createElement("div");
+    let col1 = document.createElement("div");
     col1.classList.add("col");
     if (isPopup()) {
         col1.classList.add("text-truncate");
@@ -89,10 +87,10 @@ function getListElement(companyName) {
     col1.appendChild(document.createTextNode(companyName));
     row.appendChild(col1);
 
-    var col2 = document.createElement("div");
+    let col2 = document.createElement("div");
     col2.classList.add("col");
     col2.classList.add("col-lg-2");
-    var btn = document.createElement("button")
+    let btn = document.createElement("button")
     btn.classList.add("btn");
     btn.classList.add("btn-sm");
     btn.classList.add("btn-outline-danger");
@@ -130,7 +128,7 @@ function updateMutedList() {
         }
 
         console.log(`[INFO ] list-to-show: ${mutedsList}`);
-        var ul = document.getElementById("mutedList");
+        let ul = document.getElementById("mutedList");
         mutedsList.forEach(company => {
             let listElement = getListElement(company);
             ul.appendChild(listElement);
